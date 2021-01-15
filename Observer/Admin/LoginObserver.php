@@ -27,10 +27,6 @@ class LoginObserver implements ObserverInterface
     public function execute(\Magento\Framework\Event\Observer $observer)
     {
         
-        $event = $observer->getEvent();
-        $user = $event->getUser();
-        
-        
         $apikey = $this->_scopeConfig->getValue('megaventory/general/apikey');
         $apiurl = $this->_scopeConfig->getValue('megaventory/general/apiurl');
         

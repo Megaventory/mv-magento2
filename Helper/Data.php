@@ -13,17 +13,21 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
     protected $logger;
     protected $mvLogFactory;
     private $_progressMessage;
+
+    protected $_resourceConfig;
     
     public function __construct(
         \Magento\Framework\App\Helper\Context $context,
         \Magento\Framework\App\ResourceConnection $recource,
         \Mv\Megaventory\Helper\Common $commonHelper,
         \Mv\Megaventory\Model\LogFactory $mvLogFactory,
+        \Magento\Framework\App\Config\ConfigResource\ConfigInterface $resourceConfig,
         \Mv\Megaventory\Logger\Logger $logger
     ) {
         $this->_scopeConfig = $context->getScopeConfig();
         $this->_resource = $recource;
         $this->_commonHelper = $commonHelper;
+        $this->_resourceConfig = $resourceConfig;
                         
         $this->mvLogFactory = $mvLogFactory;
         $this->logger = $logger;
@@ -32,7 +36,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
     
     public function makeJsonRequest($data, $action, $magentoId = 0, $apiurl = -1, $enabled = -1)
     {
-        //if (empty(self::$MEGAVENTORY_API_URL))
+       
         $this->MEGAVENTORY_API_URL = $this->_scopeConfig->getValue('megaventory/general/apiurl');
         
         if ($apiurl != -1) {
@@ -50,15 +54,12 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
             $data_string = json_encode($data);
             $this->logger->info('data = '.$data_string);
             
-            
             $ch = curl_init($this->MEGAVENTORY_API_URL.$action);
             curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
             curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
             
-            // letrim check in production if we need it
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-            // end of letrim
             
             curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json', 'Content-Length: ' . strlen($data_string) ]);
             $Jsonresult = curl_exec($ch);
@@ -109,7 +110,6 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
     
     public function sendProgress($gid, $message, $progress, $step, $addToReport = false)
     {
-        //static $id = 1;
         static $headingid = 1;
         static $detailid = 1;
         static $flag = 0;
@@ -154,6 +154,41 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
     public function getProgressMessage()
     {
         return $this->_progressMessage;
+    }
+
+    public function deleteCredetials()
+    {
+        $basePath = 'megaventory';
+        $values = [
+                    'general'=>[
+                        'enabled',
+                        'apiurl',
+                        'apikey',
+                        'shippingproductsku',
+                        'discountproductsku',
+                        'magentoid',
+                        'supplierattributecode',
+                        'defaultguestid',
+                        'synctimestamp',
+                        'setupreport',
+                        'syncreport',
+                        'ordersynchronization'
+                    ],
+                    'orders'=>[
+                        'ordersynchronization'
+                    ]
+                ];
+        
+        foreach ($values as $section => $fields) {
+            foreach ($fields as $field) {
+                $configPath = $basePath . '/' . $section . '/' . $field;
+                $this->_resourceConfig->deleteConfig(
+                    $configPath,
+                    \Magento\Framework\App\Config\ScopeConfigInterface::SCOPE_TYPE_DEFAULT,
+                    \Magento\Store\Model\Store::DEFAULT_STORE_ID
+                );
+            }
+        }
     }
     
     public function resetMegaventoryData()
@@ -203,16 +238,23 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
                 'SettingName' => ($settingName === false) ? 'All' : $settingName
         ];
             
-    
         $json_result = $this->makeJsonRequest($data, 'AccountSettingsGet', 0, $apiurl);
     
-        $errorCode = $json_result['ResponseStatus']['ErrorCode'];
-        if ($errorCode != '0') {
-            return false;
+        if ($json_result !== false) {
+            $errorCode = $json_result['ResponseStatus']['ErrorCode'];
+            if ($errorCode != '0') {
+                return false;
+            }
+
+            return $json_result['mvAccountSettings'];
         }
-    
-    
-        return $json_result['mvAccountSettings'];
+        return false;
+    }
+
+    public function checkAccount()
+    {
+        $accountSettings = $this->getMegaventoryAccountSettings();
+        return ($accountSettings !== false);
     }
     
     public function checkConnectivity()
@@ -225,9 +267,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
         
         $accountSettings = $this->getMegaventoryAccountSettings();
     
-        if ($accountSettings === false) { //connectivity problem
-            return 'There is a problem with your megaventory credentials!';
-        } else {
+        if ($accountSettings !== false) {
             $message = '';
             $magentoInstallationsIsSet = false;
             foreach ($accountSettings as $index => $accountSetting) {
@@ -270,6 +310,8 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
             if (strpos($message, "Administrator") === false) {
                 return "Magento Integration needs Administrator's Credentials.";
             }
+        } else { //Connectivity Problem
+            return 'There is a problem with your megaventory credentials!';
         }
     
         return true;

@@ -15,6 +15,7 @@ class Order extends \Magento\Framework\App\Helper\AbstractHelper
     protected $_taxesHelper;
     protected $_customerHelper;
     protected $_productHelper;
+    protected $_inventoriesHelper;
 
     protected $_storeManager;
     protected $_orderLoader;
@@ -29,10 +30,19 @@ class Order extends \Magento\Framework\App\Helper\AbstractHelper
     protected $_addressRenderer;
     protected $_priceCurrency;
 
+    protected $_sourceSelectionAddressFactory;
+
+    protected $_sourceSelectionService;
+    protected $_inventoryRequestFactory;
+    protected $_inventoryItemFactory;
+    protected $_stockCollectionFactory;
+    protected $_salesChannelFactory;
+    protected $_salesStockByChannel;
+    protected $_orderItemCollectionFactory;
+
     protected $logger;
     protected $mvLogFactory;
     private $APIKEY;
-
 
     public function __construct(
         \Magento\Framework\App\Helper\Context $context,
@@ -42,8 +52,10 @@ class Order extends \Magento\Framework\App\Helper\AbstractHelper
         \Mv\Megaventory\Helper\Currencies $currenciesHelper,
         \Mv\Megaventory\Helper\Taxes $taxesHelper,
         \Mv\Megaventory\Helper\Product $productHelper,
+        \Mv\Megaventory\Helper\Inventories $inventoriesHelper,
         \Magento\Store\Model\StoreManager $storeManager,
         \Magento\Sales\Model\OrderFactory $orderLoader,
+        \Magento\InventorySourceSelectionApi\Api\Data\AddressInterfaceFactory $sourceSelectionAddressFactory,
         \Magento\Catalog\Model\ProductFactory $productLoader,
         \Magento\Customer\Model\CustomerFactory $customerLoader,
         \Mv\Megaventory\Model\CurrenciesFactory $currenciesLoader,
@@ -55,7 +67,13 @@ class Order extends \Magento\Framework\App\Helper\AbstractHelper
         \Magento\Sales\Model\Order\Address\Renderer $addressRenderer,
         \Magento\Framework\Pricing\PriceCurrencyInterface $priceCurrency,
         LogFactory $mvLogFactory,
-        Logger $logger
+        Logger $logger,
+        \Magento\InventorySourceSelectionApi\Api\SourceSelectionServiceInterface $sourceSelectionService,
+        \Magento\InventorySourceSelectionApi\Api\Data\InventoryRequestInterfaceFactory $inventoryRequestFactory,
+        \Magento\InventorySourceSelectionApi\Api\Data\ItemRequestInterfaceFactory $itemRequestFactory,
+        \Magento\InventorySalesApi\Api\Data\SalesChannelInterfaceFactory $salesChannelFactory,
+        \Magento\InventorySalesApi\Api\GetStockBySalesChannelInterface $salesStock,
+        \Magento\Sales\Model\ResourceModel\Order\Item\CollectionFactory $orderItemCollectionFactory
     ) {
         $this->_scopeConfig = $context->getScopeConfig();
         $this->_registry = $registry;
@@ -65,6 +83,7 @@ class Order extends \Magento\Framework\App\Helper\AbstractHelper
         $this->_taxesHelper = $taxesHelper;
         $this->_customerHelper = $customerHelper;
         $this->_productHelper = $productHelper;
+        $this->_inventoriesHelper = $inventoriesHelper;
 
         $this->_storeManager = $storeManager;
         $this->_orderLoader = $orderLoader;
@@ -78,12 +97,158 @@ class Order extends \Magento\Framework\App\Helper\AbstractHelper
         $this->_magentoTaxHelper = $magentoTaxHelper;
         $this->_addressRenderer = $addressRenderer;
         $this->_priceCurrency = $priceCurrency;
+        $this->_orderItemCollectionFactory = $orderItemCollectionFactory;
+        $this->_sourceSelectionAddressFactory = $sourceSelectionAddressFactory;
+
+        $this->_sourceSelectionService = $sourceSelectionService;
+        $this->_inventoryRequestFactory = $inventoryRequestFactory;
+        $this->_inventoryItemFactory = $itemRequestFactory;
+        $this->_salesChannelFactory = $salesChannelFactory;
+        $this->_salesStockByChannel = $salesStock;
 
         $this->mvLogFactory = $mvLogFactory;
         $this->logger = $logger;
 
         $this->APIKEY = $this->_scopeConfig->getValue('megaventory/general/apikey');
         parent::__construct($context);
+    }
+
+    public function getSourceFromOrderItem(
+        $items,
+        $stockId,
+        $algorithmCode,
+        $extraParameters = [],
+        $isQuote = true
+    ) {
+        $requestItems = [];
+        foreach ($items as $item) {
+            $requestItem = '';
+            if ($isQuote) {
+                $requestItem = $this->_inventoryItemFactory->create(['sku'=>$item->getSku(),'qty'=>$item->getQty()]);
+            } else {
+                $qty = $item->getQtyOrdered();
+                $requestItem = $this->_inventoryItemFactory->create(['sku'=>$item->getSku(),'qty'=>$qty]);
+            }
+            $requestItems[] = $requestItem;
+        }
+        
+        $inventoryRequest = $this->_inventoryRequestFactory->create(['stockId'=>$stockId,'items'=>$requestItems]);
+        $requestExtensionAttributes = $inventoryRequest->getExtensionAttributes();
+        foreach ($extraParameters as $key => $value) {
+            $requestExtensionAttributes->setData($key, $value);
+        }
+        $inventoryRequest->setExtensionAttributes($requestExtensionAttributes);
+        $sources = $this->_sourceSelectionService->execute($inventoryRequest, $algorithmCode)
+        ->getSourceSelectionItems();
+        return $sources;
+    }
+
+    public function removeBundlesAndChildrenOfBundles($items)
+    {
+        $result = [];
+        foreach ($items as $item) {
+            if (($item->getProduct()->getTypeId() != 'bundle') && (($item->getParentItem() === null) || ($item->getParentItem()->getProduct()->getTypeId() != 'bundle'))) {
+                $result[] = $item;
+            }
+        }
+
+        return $result;
+    }
+
+    public function getOrderItemFromSourceResult($orderItems, $sourceResult)
+    {
+        foreach ($orderItems as $item) {
+            if ($item->getSku() == $sourceResult->getSku()) {
+                return $item;
+            }
+        }
+        return -1;
+    }
+
+    public function getExtraParameters($order)
+    {
+        $shippingAddress = $order->getShippingAddress();
+
+        $data = [
+            "country"=>$shippingAddress->getCountryId(),
+            "postcode"=>(string)$shippingAddress->getPostCode(),
+            "street"=>(string)$shippingAddress->getStreet()[0],
+            "region"=>(($shippingAddress->getRegionId() === null) ? (string)$shippingAddress->getRegion() : $shippingAddress->getRegionId()),
+            "city"=>(string)$shippingAddress->getCity()
+        ];
+        $sourceSelectionAddress = $this->_sourceSelectionAddressFactory->create($data);
+        $extraParams = ['destination_address'=>$sourceSelectionAddress];
+        return $extraParams;
+    }
+
+    public function getShipments($order)
+    {
+        $algorithm = $this->getAlgorithmSourceCode();
+
+        $stockId = $this->getStockIdFromOrderWebsite($order);
+
+        $items = $order->getAllItems();
+
+        $extraParams = $this->getExtraParameters($order);
+
+        $sourceItems = $this->getSourceFromOrderItem($items, $stockId, $algorithm, $extraParams, false);
+        $shipments = [];
+        
+        foreach ($sourceItems as $sourceItem) {
+            $orderItem = $this->getOrderItemFromSourceResult($items, $sourceItem);
+            if (($sourceItem->getQtyToDeduct() > 0) && ($orderItem !== -1)) {
+                if (!in_array($sourceItem->getSourceCode(), array_keys($shipments))) {
+                    $shipments[$sourceItem->getSourceCode()] = [];
+                }
+                $shipments[$sourceItem->getSourceCode()][] = [
+                    'sku'=>$sourceItem->getSku(),
+                    'qty'=>$sourceItem->getQtyToDeduct(),
+                    'order_item'=>$orderItem
+                ];
+            }
+        }
+        return $shipments;
+    }
+
+    public function getPreferredLocation($sourceItems)
+    {
+        $sourceBucket = [];
+        foreach ($sourceItems as $sourceItem) {
+            if (!in_array($sourceItem->getSourceCode(), array_keys($sourceBucket))) {
+                $sourceBucket[$sourceItem->getSourceCode()] = 0;
+            }
+
+            $sourceBucket[$sourceItem->getSourceCode()] += $sourceItem->getQtyToDeduct();
+        }
+
+        return array_search(max($sourceBucket), $sourceBucket);
+    }
+
+    public function getOrderItemFromSourceResultItem(\Magento\Sales\Model\Order $order, $sourceResult)
+    {
+        $sku = $sourceResult->getSku();
+        $orderId = $order->getId();
+
+        $item = $this->_orderItemCollectionFactory->create()
+        ->addFieldToFilter('sku', $sku)
+        ->addFieldToFilter('order_id', $orderId)->getFirstItem();
+
+        return  $item;
+    }
+
+    public function getAlgorithmSourceCode()
+    {
+        return $this->_scopeConfig->getValue('megaventory/orders/source_selection_algorithm_code');
+    }
+
+    public function getStockIdFromOrderWebsite(\Magento\Sales\Model\Order $order)
+    {
+        $websiteCode = $order->getStore()->getWebsite()->getCode();
+        
+        $channel = $this->_salesChannelFactory->create();
+        $channel->setType('website');
+        $channel->setCode($websiteCode);
+        return $this->_salesStockByChannel->execute($channel)->getStockId();
     }
 
     public function addOrder(\Magento\Sales\Model\Order $order, \Magento\Quote\Model\Quote $quote)
@@ -100,9 +265,7 @@ class Order extends \Magento\Framework\App\Helper\AbstractHelper
             $this->_currenciesHelper->addSingleCurrency($orderCurrencyCode);
         }
 
-
         $billingAddress = $order->getBillingAddress();
-        //$billingAddressString = $billingAddress->format('oneline');
         $billingAddressString = $this->_addressRenderer->format($billingAddress, 'oneline');
         $billingEmail = $billingAddress->getEmail();
         $billingTelephone = $billingAddress->getTelephone();
@@ -112,7 +275,6 @@ class Order extends \Magento\Framework\App\Helper\AbstractHelper
         }
 
         $shippingAddress = $order->getShippingAddress();
-        //$shippingAddressString = $shippingAddress->format('oneline');
         $shippingAddressString = $this->_addressRenderer->format($shippingAddress, 'oneline');
         $shippingEmail = $shippingAddress->getEmail();
         $shippingTelephone = $shippingAddress->getTelephone();
@@ -121,9 +283,7 @@ class Order extends \Magento\Framework\App\Helper\AbstractHelper
             $shippingAddressString .= ',' . $shippingTelephone;
         }
 
-
         $orderDate = $order->getUpdated_at();
-        //$customer = $order->getCustomer();
         $customer = $this->_customerLoader->create()->load($order->getCustomer_id());
 
         $megaVentoryCustomerId = 0;
@@ -153,10 +313,29 @@ class Order extends \Magento\Framework\App\Helper\AbstractHelper
         }
 
         $items = $quote->getAllItems();
+        $itemsWithoutBundles = $this->removeBundlesAndChildrenOfBundles($items);
         $salesOrderDetails = [];
 
-        $inventory = $this->_invnentoriesLoader->create()->loadDefault();
+        $algorithm = $this->getAlgorithmSourceCode();
+    
+        $stockId = $this->getStockIdFromOrderWebsite($order);
 
+        $extraParams = $this->getExtraParameters($order);
+
+        $inventorySourceCode = $this->getPreferredLocation(
+            $this->getSourceFromOrderItem(
+                $itemsWithoutBundles,
+                $stockId,
+                $algorithm,
+                $extraParams
+            )
+        );
+
+        $inventory = $this->_invnentoriesLoader->create()
+        ->load($inventorySourceCode, 'stock_source_code');
+
+        $bundleLocations = [];
+        
         foreach ($items as $productItem) {
             $product = $productItem->getProduct();
             $product = $this->_productLoader->create()->load($product->getId());
@@ -164,6 +343,18 @@ class Order extends \Magento\Framework\App\Helper\AbstractHelper
             $productType = $product->getTypeId();
             if ($productType == 'bundle') {
                 $options = $this->_productHelper->getBundleOptions($productItem);
+
+                $bundleChildren = $productItem->getChildren();
+                $bundleInventorySource = $this->getPreferredLocation(
+                    $this->getSourceFromOrderItem(
+                        $itemsWithoutBundles,
+                        $stockId,
+                        $algorithm,
+                        $extraParams
+                    )
+                );
+                $bundleInventory = $this->_invnentoriesLoader->create()
+                ->load($bundleInventorySource, 'stock_source_code');
 
                 //keep bundle products to avoid duplicates
                 $bundles = array_fill_keys(array_keys($options), '1');
@@ -212,9 +403,7 @@ class Order extends \Magento\Framework\App\Helper\AbstractHelper
                     }
                 }
 
-                //we need to set is_salable to option products
-                //because when we resynchronize an order we don't have
-                //a website id and products appear as no salable
+                //set product as saleable
                 if ($product->hasCustomOptions()) {
                     $customOption = $product->getCustomOption('bundle_option_ids');
                     $customOption = $product->getCustomOption('bundle_selection_ids');
@@ -236,17 +425,22 @@ class Order extends \Magento\Framework\App\Helper\AbstractHelper
                     'SalesOrderRowTaxID' => $salesOrderRowTaxID,
                     'SalesOrderRowProductSKU' => $bundleSKU
                 ];
-                $salesOrderDetails[] = $salesOrderItem;
 
+                if ($bundleInventory->getMegaventoryId() != $inventory->getMegaventoryId()) {
+                    $bundleLocations[$bundleInventory->getMegaventoryId()][] = $salesOrderItem;
+                } else {
+                    $salesOrderDetails[] = $salesOrderItem;
+                }
 
                 //add work order
                 if ($bundleSKU != -1) {
                     $woComments = 'product:' . $product->getName();
                     $woComments .= ',order:' . $increment_id;
-                    $this->addWorkOrder($bundleSKU, $productItem->getQty(), $inventory->getData('megaventory_id'), $woComments, $product->getId());
+                    $this->addWorkOrder($bundleSKU, $productItem->getQty(), $bundleInventory->getData('megaventory_id'), $woComments, $product->getId());
                 }
 
                 //end of work order
+
             } elseif ($productType == \Magento\Catalog\Model\Product\Type::TYPE_SIMPLE || $productType == \Magento\Catalog\Model\Product\Type::TYPE_VIRTUAL) {
                 //if product is checked through bundle then do nothing more
                 if (!empty($bundles)) {
@@ -270,14 +464,15 @@ class Order extends \Magento\Framework\App\Helper\AbstractHelper
                     $megaventoryProductId = $id;
                 }
 
-
                 $parentItem = $productItem->getParentItem();
                 if (isset($parentItem)) {
                     $productItem = $parentItem;
-                    //$product = $productItem->getProduct();
                 }
 
-                $finalPriceNoTax = $this->getPrice($productItem->getProduct(), $productItem->getProduct()->getFinalPrice($productItem->getQty()));
+                $finalPriceNoTax = $this->getPrice(
+                    $productItem->getProduct(),
+                    $productItem->getProduct()->getFinalPrice($productItem->getQty())
+                );
 
                 $taxPercent = $productItem->getTax_percent();
                 $tax = $this->_taxesHelper->getTaxByPercentage($taxPercent);
@@ -326,13 +521,9 @@ class Order extends \Magento\Framework\App\Helper\AbstractHelper
         //add shipping as product
 
         //get base prices
-        /* $shippingNoTax = $order->getShipping_amount();
-            $shippingWithTax = $order->getShipping_incl_tax();
-            $shippingTax = $order->getShipping_tax_amount(); */
         $shippingNoTax = $order->getBase_shipping_amount();
         $shippingWithTax = $order->getBase_shipping_incl_tax();
         $shippingTax = $order->getBase_shipping_tax_amount();
-
 
         $shippingProductSKU = $this->_scopeConfig->getValue('megaventory/general/shippingproductsku');
         $shippingOrderItem = [
@@ -413,12 +604,10 @@ class Order extends \Magento\Framework\App\Helper\AbstractHelper
         $shippingMethod = $order->getShipping_method();
         $paymentMethodTitle = $order->getPayment()->getMethodInstance()->getTitle();
 
-
         $storeName = $order->getStore_name();
         $comments .= 'ship:' . $shippingDescription . ',pay:' . $paymentMethodTitle;
 
         $tags = '';
-
 
         $magentoInstallationId = $this->_scopeConfig->getValue('megaventory/general/magentoid');
         if (!isset($magentoInstallationId)) {
@@ -452,12 +641,48 @@ class Order extends \Magento\Framework\App\Helper\AbstractHelper
         $orderAdded = $this->_orderLoader->create()->loadByIncrementId($increment_id);
         $json_result = $this->_mvHelper->makeJsonRequest($data, 'SalesOrderUpdate', $orderAdded->getId());
 
-
         $errorCode = $json_result['ResponseStatus']['ErrorCode'];
         if ($errorCode == '0') { //no errors
-            $orderAdded->setData('mv_salesorder_id', $json_result['mvSalesOrder']['SalesOrderNo']);
-            $orderAdded->setData('mv_inventory_id', $inventory->getData('id'));
-            $orderAdded->save();
+            $error = false;
+
+            //Create bundles based on the location availability of the children products
+            foreach ($bundleLocations as $mvInventoryId => $orderDetails) {
+                $data = [
+                    'APIKEY' => $this->APIKEY,
+                    'mvSalesOrder' =>
+                    [
+                        'SalesOrderNo' => $increment_id,
+                        'SalesOrderReferenceNo' => $increment_id,
+                        'SalesOrderReferenceApplication' => $magentoInstallationId, //magento, magento-2 ...
+                        //always insert orders in base currency
+                        'SalesOrderCurrencyCode' => $baseCurrencyCode,
+                        //'SalesOrderCurrencyCode' => $orderCurrencyCode,
+                        'SalesOrderClientID' => $megaVentoryCustomerId,
+                        'SalesOrderBillingAddress' => $billingAddressString,
+                        'SalesOrderShippingAddress' => $shippingAddressString,
+                        'SalesOrderContactPerson' => $billingAddress->getLastname() . ' ' . $billingAddress->getFirstname(),
+                        'SalesOrderInventoryLocationID' => $mvInventoryId,
+                        'SalesOrderComments' => $comments,
+                        'SalesOrderTags' => $tags,
+                        'SalesOrderAmountShipping' => $shippingWithTax,
+                        'SalesOrderDetails' => $orderDetails,
+                        'SalesOrderStatus' => 'Verified'
+                    ],
+                    'mvRecordAction' => "Insert"
+                ];
+
+                $orderAdded = $this->_orderLoader->create()->loadByIncrementId($increment_id);
+                $json_result = $this->_mvHelper->makeJsonRequest($data, 'SalesOrderUpdate', $orderAdded->getId());
+                if ($errorCode != '0') {
+                    $error = true;
+                    break;
+                }
+            }
+            if (!$error) {
+                $orderAdded->setData('mv_salesorder_id', $json_result['mvSalesOrder']['SalesOrderNo']);
+                $orderAdded->setData('mv_inventory_id', $inventory->getData('id'));
+                $orderAdded->save();
+            }
         }
     }
 
@@ -500,7 +725,6 @@ class Order extends \Magento\Framework\App\Helper\AbstractHelper
         $store = $this->_storeManager->getStore();
 
         if (!$this->needPriceConversion($store)) {
-            //return $store->roundPrice($price);
             return $this->_priceCurrency->round($price);
         }
 
@@ -547,14 +771,12 @@ class Order extends \Magento\Framework\App\Helper\AbstractHelper
 
         $product->setTaxPercent($percent);
 
-
         if ($includingPercent != $percent) {
             $price = $this->_calculatePrice($price, $includingPercent, false);
         } else {
             $price = $this->_calculatePrice($price, $includingPercent, false, true);
         }
 
-        //return $store->roundPrice($price);
         return $this->_priceCurrency->round($price);
     }
 

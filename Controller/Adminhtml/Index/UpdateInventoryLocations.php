@@ -6,7 +6,6 @@ use Magento\Framework\Controller\ResultFactory;
 class UpdateInventoryLocations extends \Magento\Backend\App\Action
 {
 
-    
     protected $_inventoriesHelper;
     
     public function __construct(

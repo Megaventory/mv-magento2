@@ -6,7 +6,6 @@ use Magento\Framework\Controller\ResultFactory;
 class SynchronizeOrder extends \Magento\Backend\App\Action
 {
 
-    
     protected $_orderLoader;
     protected $_quoteLoader;
     protected $_websiteLoader;

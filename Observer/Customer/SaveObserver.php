@@ -39,12 +39,6 @@ class SaveObserver implements ObserverInterface
         
         $result = $this->_mvCustomerHelper->addCustomer($customer);
         
-        /* if ($result == 0){
-            $logUrl = $this->_backendUrl->getUrl("megaventory/log/index");
-            $this->_messageManager->addError('Customer '.$customer->getId().' has not been updated in Megaventory. Please review <a href="'.$logUrl.'" target="_blank">Megaventory Log</a> for details');
-            return;
-        } */
-
         if (is_array($result)) {
             $undeleteUrl = $this->_backendUrl->getUrl("megaventory/index/undeleteEntity");
             $this->_messageManager->addError('Customer '.$customer->getName().' is flagged as deleted in Megaventory. Presse <a onclick="MegaventoryManager.undeleteEntity(\'' . $undeleteUrl  .'\','.$result['mvCustomerId'].',\'supplierclient\')" href="javascript:void(0);">here</a> if you want to automatically undelete it');

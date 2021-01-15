@@ -19,7 +19,6 @@ class Customer extends \Magento\Framework\App\Helper\AbstractHelper
     protected $logger;
     protected $mvLogFactory;
     
-    
     public function __construct(
         \Magento\Framework\App\Helper\Context $context,
         \Magento\Config\Model\ResourceModel\Config $resourceConfig,
@@ -79,12 +78,11 @@ class Customer extends \Magento\Framework\App\Helper\AbstractHelper
             $storeViewName = $customer->getCreated_in();
             $clientComments = ''.'created at:'.$createdAt.',website:'.$webSiteId.',store:'.$storeId.',storeview:'.$storeViewName;
         
-        
             if (isset($megaVentoryId) && $megaVentoryId!=null) { //it is an update
                 $mvCustomerId = $megaVentoryId;
                 $mvRecordAction = 'Update';
-            } else //it is an insert
-            {
+            } else {//it is an insert
+            
                 $mvCustomerId = '0';
                 $mvRecordAction = 'Insert';
             }
@@ -145,8 +143,7 @@ class Customer extends \Magento\Framework\App\Helper\AbstractHelper
                     ],
                     'mvRecordAction' => $mvRecordAction,
                     'mvGrantPermissionsToAllUsers' => true];
-                
-                
+                 
             $json_result = $this->_mvHelper->makeJsonRequest($data, 'SupplierClientUpdate', $customer->getId());
                 
             $errorCode = $json_result['ResponseStatus']['ErrorCode'];
@@ -239,7 +236,6 @@ class Customer extends \Magento\Framework\App\Helper\AbstractHelper
         ];
             
         $json_result = $this->_mvHelper->makeJsonRequest($data, 'SupplierClientUpdate', 0);
-    
     
         $errorCode = $json_result['ResponseStatus']['ErrorCode'];
         if ($errorCode == 0) {

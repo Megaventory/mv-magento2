@@ -45,9 +45,10 @@ class ProductInventoriesColumn extends Column
                         if ($item['mv_product_id'] != 0) {
                             $html = '';
                             foreach ($inventories as $inventory) {
-                                if ($inventory['counts_in_total_stock'] == 1) {
+                                if ($inventory->getStockSourceCode() !== null) {
                                     $html .= '<ul style="padding-bottom:10px;">';
-                                    $productStock = $this->_productStocksLoader->create()->loadInventoryProductstock($inventory->getId(), $item['entity_id']);
+                                    $productStock = $this->_productStocksLoader->create()
+                                    ->loadInventoryProductstock($inventory->getId(), $item['entity_id']);
                                     
                                     $html .= '<li style="width:100%;padding-right:10px;display:table-cell;"><span style="float:left;">'.$inventory->getShortname().'</span></li>';
                                     $html .= '<li title="Quantity" style="padding-right:10px;display:table-cell;"><span style="float:left;">'.round($productStock->getStockqty(), 5).'</span></li>';

@@ -24,6 +24,9 @@ class ImportInventories extends \Magento\Backend\App\Action
     public function execute()
     {
         $page = $this->getRequest()->getPost('page');
+        if ($page == 1) {
+            $this->_inventoriesHelper->truncateReservationsTable();
+        }
         
         $nextPage = $this->_inventoriesHelper->syncrhonizeInventories($page, -1, -1);
         

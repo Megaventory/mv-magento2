@@ -8,6 +8,7 @@ use Magento\Framework\Controller\ResultFactory;
 
 /**
  * Class MassDelete
+ * This class provides mass deletion functionality for the megaventory logs
  */
 class MassDelete extends \Magento\Backend\App\Action
 {

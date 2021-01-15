@@ -11,8 +11,12 @@ class MassUpdateObserver implements ObserverInterface
     private $_productLoader;
     protected $_logger;
     
-    public function __construct(\Mv\Megaventory\Helper\Product $mvProductHelper, \Magento\Framework\Message\ManagerInterface $messageManager, \Magento\Catalog\Model\ProductFactory $productLoader, \Psr\Log\LoggerInterface $logger) // log injection
-    {
+    public function __construct(
+        \Mv\Megaventory\Helper\Product $mvProductHelper,
+        \Magento\Framework\Message\ManagerInterface $messageManager,
+        \Magento\Catalog\Model\ProductFactory $productLoader,
+        \Psr\Log\LoggerInterface $logger // log injection
+    ) {
         $this->_mvProductHelper = $mvProductHelper;
         $this->_messageManager = $messageManager;
         $this->_productLoader = $productLoader;

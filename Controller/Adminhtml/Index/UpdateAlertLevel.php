@@ -30,7 +30,6 @@ class UpdateAlertLevel extends \Magento\Backend\App\Action
         $mvProductId = $this->getRequest()->getParam('mv_product_id');
         $alertLevel = $this->getRequest()->getParam('alertlevel');
         
-        
         $alertData =
         [
                 'APIKEY' => $this->_scopeConfig->getValue('megaventory/general/apikey'),

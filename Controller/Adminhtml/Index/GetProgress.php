@@ -32,7 +32,7 @@ class GetProgress extends \Magento\Backend\App\Action
             $lastlastMessagesSql = 'SELECT id, messagedata FROM '.$tableName.' ORDER BY id asc';
                 
             $deleteMessages = 'delete FROM '.$tableName;
-            $data = "";
+            $data = [];
             $rows = $connection->fetchAll($lastlastMessagesSql);
             if (count($rows) > 0) {
                 $message = '';

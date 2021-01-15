@@ -1,0 +1,4 @@
+.admin__menu .level-0.item-megaventory > a:before {
+    content: url('../images/icon-megaventory.png');
+    margin-bottom: 0.7rem;
+}

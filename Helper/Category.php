@@ -20,7 +20,6 @@ class Category extends \Magento\Framework\App\Helper\AbstractHelper
     protected $logger;
     protected $mvLogFactory;
     
-    
     public function __construct(
         \Magento\Framework\App\Helper\Context $context,
         Data $mvHelper,
@@ -98,8 +97,8 @@ class Category extends \Magento\Framework\App\Helper\AbstractHelper
                     }
                 }
             }
-        } else //we must also update all children
-        {
+        } else {//we must also update all children
+        
             $this->updateCategoriesRecursively($category);
         }
     }
@@ -139,8 +138,7 @@ class Category extends \Magento\Framework\App\Helper\AbstractHelper
             $isLastPage = true;
         }
     
-    
-        $total = $imported;// + ($page-1)*10;
+        $total = $imported;
         foreach ($collection as $category) {
             try {
                 $inserted = $this->insertSingleCategory($category);
@@ -199,7 +197,6 @@ class Category extends \Magento\Framework\App\Helper\AbstractHelper
         //the special [No Name] title
         if (empty($name)) {
             $name = '[No Name]';
-            //return -1;
         }
     
         if (isset($descr) && $descr != null) {
@@ -319,13 +316,11 @@ class Category extends \Magento\Framework\App\Helper\AbstractHelper
     
         $megaventoryCategoryId = $category->getData('mv_productcategory_id');
     
-    
         if (isset($megaventoryCategoryId)) {
             $data =  [
                     'APIKEY' => $this->APIKEY,
                     'ProductCategoryIDToDelete' => $megaventoryCategoryId,
                     'mvCategoryDeleteAction' => 'LeaveProductsOrphan'];
-    
     
             $json_result = $this->_mvHelper->makeJsonRequest($data, 'ProductCategoryDelete', $category->getEntityId());
         }

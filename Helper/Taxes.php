@@ -20,7 +20,6 @@ class Taxes extends \Magento\Framework\App\Helper\AbstractHelper
     protected $logger;
     protected $mvLogFactory;
     
-    
     public function __construct(
         \Magento\Framework\App\Helper\Context $context,
         Data $mvHelper,
@@ -66,7 +65,6 @@ class Taxes extends \Magento\Framework\App\Helper\AbstractHelper
     
         $i = 0;
     
-        
         $connection = $this->_resource->getConnection();
         $tableName = $this->_resource->getTableName('megaventory_taxes');
         
@@ -138,7 +136,6 @@ class Taxes extends \Magento\Framework\App\Helper\AbstractHelper
         $tax->setData('percentage', $mvTax['TaxValue']);
         $tax->save();
     }
-    
     
     private function checkIfTaxExists($mvTax)
     {

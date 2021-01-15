@@ -120,18 +120,18 @@ class InstallSchema implements InstallSchemaInterface
             'Address'
         )
         ->addColumn(
-            'isdefault',
-            \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
-            null,
-            ['unsigned' => true, 'nullable' => true ],
-            'IsDefault'
-        )
-        ->addColumn(
             'megaventory_id',
             \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
             null,
             [],
             'Megaventory Id'
+        )
+        ->addColumn(
+            'stock_source_code',
+            \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
+            200,
+            ['nullable' => true, 'default' => null],
+            'Magento Inventory Source'
         )
         ->addColumn(
             'counts_in_total_stock',

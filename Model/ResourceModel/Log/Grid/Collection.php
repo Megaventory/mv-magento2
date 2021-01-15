@@ -14,7 +14,7 @@ class Collection extends \Magento\Framework\View\Element\UiComponent\DataProvide
         FetchStrategy $fetchStrategy,
         EventManager $eventManager,
         $mainTable = 'megaventory_log',
-        $resourceModel = '\Mv\Megaventory\Model\ResourceModel\Log'
+        $resourceModel = \Mv\Megaventory\Model\ResourceModel\Log::class
     ) {
         parent::__construct($entityFactory, $logger, $fetchStrategy, $eventManager, $mainTable, $resourceModel);
     }

@@ -6,7 +6,6 @@ use Magento\Framework\Controller\ResultFactory;
 class UpdateSupplierSettings extends \Magento\Backend\App\Action
 {
 
-    
     protected $_resourceConfig;
     protected $_resultJsonFactory;
     protected $_cacheTypeList;
@@ -62,8 +61,8 @@ class UpdateSupplierSettings extends \Magento\Backend\App\Action
             ];
             
             return $this->_resultJsonFactory->create()->setData($result);
-        } else //delete it
-        {
+        } else {//delete it
+        
             $result = [
                         'attribute_code'=>'notok',
                         'message'=>'Supplier Attribute setting deleted'

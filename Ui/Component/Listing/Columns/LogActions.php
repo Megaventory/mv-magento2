@@ -15,7 +15,6 @@ class LogActions extends Column
     /** @var UrlInterface */
     protected $urlBuilder;
 
-
     public function __construct(
         ContextInterface $context,
         UiComponentFactory $uiComponentFactory,
@@ -24,7 +23,6 @@ class LogActions extends Column
         array $data = []
     ) {
         $this->urlBuilder = $urlBuilder;
-        //$this->editUrl = $editUrl;
         parent::__construct($context, $uiComponentFactory, $components, $data);
     }
 

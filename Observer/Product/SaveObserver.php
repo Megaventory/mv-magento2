@@ -32,9 +32,6 @@ class SaveObserver implements ObserverInterface
         if (! $this->_commonHelper->isMegaventoryEnabled()) {
             return;
         }
-
-      //Observer execution code...
-      //$productId = $observer->getEvent()->getProduct()->getId();
         $product = $observer->getEvent()->getProduct();
         if ($product != null) {
             $result = -1;

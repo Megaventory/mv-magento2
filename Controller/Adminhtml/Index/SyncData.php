@@ -19,7 +19,6 @@ class SyncData extends \Magento\Backend\App\Action
     protected $_currenciesHelper;
     protected $_taxesHelper;
     
-    
     public function __construct(
         \Magento\Backend\App\Action\Context $context,
         \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
@@ -65,11 +64,8 @@ class SyncData extends \Magento\Backend\App\Action
             return $this->_resultJsonFactory->create()->setData($result);
         }
         
-        
         static $step = 1;
-        //$totalSteps = 5;
         $totalSteps = 4;
-        
         
         $serverTime = '';//time();
         //TODO
@@ -122,8 +118,8 @@ class SyncData extends \Magento\Backend\App\Action
             $this->_mvHelper->sendProgress(10, '<br><strong>Step 2/'.$totalSteps.'</strong> Adding Supporting Entities to Megaventory', '0', 'entities', false);
             $createdMessage = $this->_productHelper->addShippingProduct($this->_mvHelper);
             if ($createdMessage !== true) {
-                $megaventoryHelper->sendProgress(11, 'There was a problem inserting Shipping Product in Megaventory!'.$this->_registry->registry('errorImage'), '0', 'shippingproduct', false);
-                $megaventoryHelper->sendProgress(12, $createdMessage, '0', 'shippingproduct', false);
+                $this->_mvHelper->sendProgress(11, 'There was a problem inserting Shipping Product in Megaventory!'.$this->_registry->registry('errorImage'), '0', 'shippingproduct', false);
+                $this->_mvHelper->sendProgress(12, $createdMessage, '0', 'shippingproduct', false);
                 $result['nextstep'] = 'error';
                 return $this->_resultJsonFactory->create()->setData($result);
             }
@@ -156,7 +152,6 @@ class SyncData extends \Magento\Backend\App\Action
                 
             $import = $this->_categoryHelper->importCategoriesToMegaventory($page, $imported);
                 
-                
             if ($import === false) {
                 $result['currentstep'] = $syncStep;
                 $result['nextstep'] = 'products';
@@ -176,11 +171,6 @@ class SyncData extends \Magento\Backend\App\Action
             }
             
             $import = $this->_productHelper->importProductsToMegaventory($page, $imported);
-            
-            //TODO
-            //remove this!!!!
-            /* if ($page == 3)
-                $import = false; */
             
             if ($import === false) {
                 $result['currentstep'] = $syncStep;
@@ -205,7 +195,6 @@ class SyncData extends \Magento\Backend\App\Action
             $this->_resourceConfig->saveConfig('megaventory/general/synctimestamp', $syncTimestamp, 'default', 0);
             $this->_resourceConfig->saveConfig('megaventory/general/setupreport', $this->_mvHelper->getProgressMessage(), 'default', 0);
             
-            //unfortunately
             $this->_cacheTypeList->cleanType('config');
                 
             $apikey = $this->_scopeConfig->getValue('megaventory/general/apikey');
@@ -239,11 +228,9 @@ class SyncData extends \Magento\Backend\App\Action
             $result['nextstep'] = 'finish';
             return $this->_resultJsonFactory->create()->setData($result);
         } elseif ($syncStep == 'error') {
-            //$syncTimestamp = time();
             $this->_mvHelper->sendProgress(90, '<br>Entity import did not finish succesfully.', '0', 'finisherror', true);
             $this->_mvHelper->sendProgress(100, 'Please refresh page and try again!', '0', 'done', false);
             
-
             $connection = $this->_resource->getConnection();
             $tableName = $this->_resource->getTableName('megaventory_progress');
             

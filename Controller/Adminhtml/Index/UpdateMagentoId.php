@@ -5,7 +5,6 @@ use Magento\Framework\Controller\ResultFactory;
 
 class UpdateMagentoId extends \Magento\Backend\App\Action
 {
-
     
     protected $_resourceConfig;
     protected $_resultJsonFactory;

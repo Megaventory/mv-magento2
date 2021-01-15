@@ -24,7 +24,7 @@ class Collection extends \Magento\Framework\Data\Collection implements SearchRes
         \Mv\Megaventory\Helper\Data $mvHelper
     ) {
         parent::__construct($entityFactory);
-        parent::setItemObjectClass('\Magento\Framework\View\Element\UiComponent\DataProvider\Document');
+        parent::setItemObjectClass(\Magento\Framework\View\Element\UiComponent\DataProvider\Document::class);
         $this->_mvHelper = $mvHelper;
         $this->_scopeConfig = $scopeConfig;
     }
@@ -57,8 +57,6 @@ class Collection extends \Magento\Framework\Data\Collection implements SearchRes
             $mvIntegrationUpdates = $json_result['mvIntegrationUpdates'];
                 
             foreach ($mvIntegrationUpdates as $mvIntegrationUpdate) {
-                //$item = new \Magento\Framework\DataObject;
-                //$item = \Magento\Framework\View\Element\UiComponent\DataProvider\Document;
                 $item = $this->getNewEmptyItem();
                 $arraykeys = array_keys($mvIntegrationUpdate);
                 foreach ($arraykeys as $arraykey) {

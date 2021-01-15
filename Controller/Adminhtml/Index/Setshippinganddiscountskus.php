@@ -54,13 +54,11 @@ class Setshippinganddiscountskus extends \Magento\Backend\App\Action
                         'message'=>'Supplier attribute must be of frontend type Text or Dropdown'
                 ];
                 return $this->_resultJsonFactory->create()->setData($result);
-                //echo json_encode($result) . PHP_EOL;
             }
         
             $this->_resourceConfig->saveConfig('megaventory/general/supplierattributecode', $magentoSupplierAttributeCode, 'default', 0);
         }
         
-        //unfortunately
         $this->_cacheTypeList->cleanType('config');
         
         $result = [

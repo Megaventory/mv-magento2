@@ -6,7 +6,6 @@ use Magento\Framework\Controller\ResultFactory;
 class UndeleteEntity extends \Magento\Backend\App\Action
 {
 
-    
     protected $_scopeConfig;
     protected $_mvHelper;
     protected $_resultJsonFactory;

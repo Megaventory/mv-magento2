@@ -13,7 +13,7 @@ class SaveObserver implements ObserverInterface
     public function __construct(
         \Mv\Megaventory\Helper\Order $orderHelper,
         \Magento\Framework\Message\ManagerInterface $messageManager,
-        \Psr\Log\LoggerInterface $logger //log injection
+        \Psr\Log\LoggerInterface $logger
     ) {
         $this->_orderHelper = $orderHelper;
     
@@ -23,7 +23,6 @@ class SaveObserver implements ObserverInterface
 
     public function execute(\Magento\Framework\Event\Observer $observer)
     {
-      //Observer execution code...
         $order = $observer->getEvent()->getOrder();
         $quote = $observer->getEvent()->getQuote();
     

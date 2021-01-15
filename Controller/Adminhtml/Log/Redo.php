@@ -11,7 +11,14 @@ use Magento\Framework\Controller\ResultFactory;
  */
 class Redo extends \Magento\Backend\App\Action
 {
-
+    protected $_mvLogFactory;
+    public function __construct(
+        \Mv\Megaventory\Model\LogFactory $logFactory,
+        \Magento\Backend\App\Action\Context $context
+    ) {
+        $this->_mvLogFactory = $logFactory;
+        parent::__construct($context);
+    }
     /**
      * {@inheritdoc}
      */
@@ -24,7 +31,7 @@ class Redo extends \Magento\Backend\App\Action
     public function execute()
     {
         $id = $this->getRequest()->getParam('log_id');
-        $model = $this->_objectManager->create('Mv\Megaventory\Model\Log');
+        $model = $this->_mvLogFactory->create();
 
         $resultRedirect = $this->resultRedirectFactory->create();
         

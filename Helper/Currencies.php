@@ -21,7 +21,6 @@ class Currencies extends \Magento\Framework\App\Helper\AbstractHelper
     protected $logger;
     protected $mvLogFactory;
     
-    
     public function __construct(
         \Magento\Framework\App\Helper\Context $context,
         Data $mvHelper,
@@ -96,13 +95,11 @@ class Currencies extends \Magento\Framework\App\Helper\AbstractHelper
                 $newMVCurrency->save();
         }
     
-    
         $message = 'Added to Megaventory '.$totals.' currencies'.$this->_registry->registry('tickImage');
         $this->_mvHelper->sendProgress(14, $message, '0', 'entities', true);
     
         return $totals;
     }
-    
     
     private function checkIfCurrencyExists($mvCurrency)
     {

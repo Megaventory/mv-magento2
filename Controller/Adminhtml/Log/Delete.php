@@ -11,13 +11,21 @@ use Magento\Framework\Controller\ResultFactory;
  */
 class Delete extends \Magento\Backend\App\Action
 {
+    protected $_mvLogFactory;
+
+    public function __construct(
+        \Mv\Megaventory\Model\LogFactory $logFactory,
+        \Magento\Backend\App\Action\Context $context
+    ) {
+        $this->_mvLogFactory = $logFactory;
+        parent::__construct($context);
+    }
     /**
      * {@inheritdoc}
      */
     protected function _isAllowed()
     {
         return true;
-        //return $this->_authorization->isAllowed('Ashsmith_Blog::delete');
     }
 
     /**
@@ -32,7 +40,7 @@ class Delete extends \Magento\Backend\App\Action
         $resultRedirect = $this->resultRedirectFactory->create();
         if ($id) {
             try {
-                $model = $this->_objectManager->create('Mv\Megaventory\Model\Log');
+                $model = $this->_mvLogFactory->create();
                 $model->load($id);
                 $model->delete();
                 $this->messageManager->addSuccess(__('The log has been deleted.'));

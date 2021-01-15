@@ -29,9 +29,9 @@ class Inventories extends \Magento\Framework\Model\AbstractModel implements Iden
         return [self::CACHE_TAG . '_' . $this->getId()];
     }
     
-    public function loadDefault()
+    public function loadBySource($sourceCode)
     {
-        return $this->load('1', 'isdefault');
+        return $this->load($sourceCode, 'stock_source_code');
     }
     
     public function loadByName($shortName)

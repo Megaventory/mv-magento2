@@ -29,10 +29,8 @@ class GetInventories extends \Magento\Backend\App\Action
     public function execute()
     {
         $inventories = $this->_inventoriesHelper->getInventories();
-        $options = [];
         foreach ($inventories as $inventory) {
-            $options[] = ['value' => $inventory->getId() , 'text' => $inventory->getName()];
-            //$options .= '<option value="'.$inventory->getId().'">'.$inventory->getName().'</option>\n';
+            $options[] = ['value' => $inventory->getMegaventoryId() , 'text' => $inventory->getName()];
         }
         
         $result = ['options'=> $options];

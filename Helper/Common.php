@@ -30,7 +30,6 @@ class Common extends \Magento\Framework\App\Helper\AbstractHelper
             return true;
         }
     
-    
         return false;
     }
     

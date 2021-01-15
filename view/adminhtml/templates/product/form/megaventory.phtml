@@ -1,16 +1,16 @@
 <?php
 
-$currentProduct = $this->getCurrentProduct();
-$inventories = $this->getInventories();
+$currentProduct = $block->getCurrentProduct();
+$inventories = $block->getInventories();
 
 $mvProductId = $currentProduct->getData('mv_product_id');
-$workOrders = $this->getAdminSessionValue('mv_isWorksModuleEnabled');
+$workOrders = $block->getAdminSessionValue('mv_isWorksModuleEnabled');
 
-$subDomain = $this->getAdminSessionValue('mv_DomainName');
+$subDomain = $block->getAdminSessionValue('mv_DomainName');
 $domain = '.megaventory.com';
 $mvProduct = -1;
 if (!empty($mvProductId)) {
-    $mvProduct = $this->getMvProduct($mvProductId);
+    $mvProduct = $block->getMvProduct($mvProductId);
 }
     
 $links = '';
@@ -27,7 +27,7 @@ if ($mvProduct != -1 && $mvProduct != null) {
     
     $noticeSKU = '';
     if ($mvProduct['ProductSKU'] != $currentProduct->getSku()) {
-        $messageImg = $this->getViewFileUrl('Mv_Megaventory::images/message.png');
+        $messageImg = $block->getViewFileUrl('Mv_Megaventory::images/message.png');
         $noticeSKU = '<img src="'.$messageImg.'">';
         $noticeSKU .= '<span style="color:red;">Attention!<br/>Products are synchronized but SKUs are not the same.<br/>You should modify Magento Product SKU to exactly match Megaventory Product SKU</span>';
     }
@@ -97,20 +97,20 @@ if ($mvProduct != -1 && $mvProduct != null) {
                             <?php endif;?>
                             <td class="value"><input style="width: 50px;"
                 type="text" name="alertQty"
-                onchange="changeAlertLevel(this,<?php echo $inventory->getData('megaventory_id'); ?>)"
-                value="<?php echo round($productStock->getStockalarmqty(), 2) ?>"> <img
-                id="loader_<?php echo $inventory->getData('megaventory_id');?>"
-                src="<?php echo $this->getViewFileUrl('Mv_Megaventory::images/smallloader.gif')?>"
+                onchange="changeAlertLevel(this,<?= $inventory->getData('megaventory_id'); ?>)"
+                value="<?= round($productStock->getStockalarmqty(), 2) ?>"> <img
+                id="loader_<?= $inventory->getData('megaventory_id');?>"
+                src="<?= $block->getViewFileUrl('Mv_Megaventory::images/smallloader.gif')?>"
                 style="border-width: 0px; display: none; vertical-align: middle;"> <img
-                id="ok_<?php echo $inventory->getData('megaventory_id');?>"
-                src="<?php echo $this->getViewFileUrl('Mv_Megaventory::images/accept.png')?>"
+                id="ok_<?= $inventory->getData('megaventory_id');?>"
+                src="<?= $block->getViewFileUrl('Mv_Megaventory::images/accept.png')?>"
                 style="border-width: 0px; display: none; vertical-align: middle;"></td>
         </tr>
                         <?php endforeach; ?>
                     </tbody>
 </table>
 <?php else: ?>
-<div style="megaventory_message">There are no Megaventory Inventories.Please import them in <a href="<?php echo $this->getUrl('megaventory/index/index')?>">Settings Page</a></div>
+<div style="megaventory_message">There are no Megaventory Inventories.Please import them in <a href="<?= $block->getUrl('megaventory/index/index')?>">Settings Page</a></div>
 <?php endif; ?>
 
 <script type="text/javascript">
@@ -128,8 +128,8 @@ require(['jquery', 'jquery/ui'], function($){
             type: 'POST',
             data: {
                 'mv_inventory_id' : inventoryId,
-                'magento_product_id' : <?php echo $currentProduct->getId() ?>,
-                'mv_product_id' : <?php echo $currentProduct->getData('mv_product_id') ?>,
+                'magento_product_id' : <?= $currentProduct->getId(); ?>,
+                'mv_product_id' : <?= $currentProduct->getData('mv_product_id'); ?>,
                 'alertlevel' : $(elem).val()
                 },
             dataType: 'json',

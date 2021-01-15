@@ -42,7 +42,8 @@ class InventoryColumn extends Column
                         $inventory = $this->_inventoriesLoader->create()->load($item[$this->getData('name')]);
                         $item[$this->getData('name')] = $inventory->getData('shortname');
                     } else {
-                        $orderSynchronization = $this->_scopeConfig->getValue('megaventory/general/ordersynchronization');
+                        $orderSynchronization = $this->_scopeConfig
+                        ->getValue('megaventory/general/ordersynchronization');
                         
                         $notAssigned = 'Not Synchronized';
                         if (empty($orderSynchronization) || $orderSynchronization === '0') {

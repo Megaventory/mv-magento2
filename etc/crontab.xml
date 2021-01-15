@@ -1,9 +1,9 @@
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Cron:etc/crontab.xsd">
     <group id="default">
-        <job name="mv_megaventory_apply_pending_updates" instance="Mv|Megaventory\Cron\ApplyPendingUpdates" method="execute">
+        <job name="mv_megaventory_apply_pending_updates" instance="Mv\Megaventory\Cron\ApplyPendingUpdates" method="execute">
             <schedule>*/5 * * * *</schedule>
         </job>
-        <job name="mv_megaventory_check" instance="Mv|Megaventory\Cron\CheckOrderSynchronization" method="execute">
+        <job name="mv_megaventory_check" instance="Mv\Megaventory\Cron\CheckOrderSynchronization" method="execute">
             <schedule>*/10 * * * *</schedule>
         </job>
     </group>
